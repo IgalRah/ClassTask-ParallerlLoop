@@ -7,65 +7,51 @@ namespace ParallerlLoop
 {
     class Ex1
     {
-        public static ConcurrentDictionary<int, BankAccount> dict = new ConcurrentDictionary<int, BankAccount>();
-
-        public static void Main(string[] args)
+        public static ConcurrentDictionary<int, BankAccount> cDict = new ConcurrentDictionary<int, BankAccount>();
+        public static void Main(string[] arg)
         {
-            try
+            int TotalIncrease = 0;
+            int TotalBalance = 0;
+
+            for (int i = 0; i < 10; i++)
             {
-                int sum = 0;
+                var bankAcount = new BankAccount(100);
+                cDict.TryAdd(i, bankAcount);
+                TotalIncrease++;
+            }  // Create 10000 bank accounts
 
-                for (int i = 1; i <= 10000; i++)
-                {
-                    var bankAccount = new BankAccount(100);
-                    dict.TryAdd(i, bankAccount);
-                }
+            Random rnd = new Random();
+            var po = new ParallelOptions();
+            po.MaxDegreeOfParallelism = 4;
 
-                Random rnd = new Random();
-                var po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = 3;
-
-                Parallel.ForEach(dict, x =>
-                {
-                    x.Value.Balance = (x.Value.Balance + 25) / rnd.Next(100);
-                }
-                );
-
-
-                Parallel.For(0, 101,po, 
-                () => 0,
-                (x, TotalIncrease, TotalBalance) =>
-                {
-                    TotalBalance += x;
-                    Console.WriteLine($"Task {Task.CurrentId} has sum {TotalBalance}");
-                    return TotalBalance;
-                },
-                partialSum =>
-                {
-                    Thread.Sleep(100);
-                    Console.WriteLine($"Partial value of task {Task.CurrentId} is {partialSum}");
-                    Interlocked.Add(ref sum, partialSum);
-                }
-                );
-                Console.WriteLine($"\nTotal balance: {sum}");
-                Console.WriteLine($"Total increase: ");
-
-            }
-            catch (AggregateException e)
+            Parallel.ForEach(cDict, po, x =>
             {
-                Console.WriteLine(e.Message);
+                x.Value.Deposit(25);
+                x.Value.Balance /= rnd.Next(1, 10);
+                TotalBalance += x.Value.Balance;
+
+                Console.WriteLine($"[{Thread.GetCurrentProcessorId()}] Account: {x.Key}, Balance: {x.Value.Balance}");
             }
+            );
+            Console.WriteLine($"Total increase: {TotalIncrease}, total balance of all accounts: {TotalBalance}");
         }
     }
-    public class BankAccount
+    class BankAccount
     {
-        object padlock = new();
+        object padlock = new object();
+        public int Balance { get; set; }
 
-        public double Balance { get; set; }
-
-        public BankAccount(double balance)
+        public BankAccount(int balance)
         {
             Balance = balance;
+        }
+
+        public void Deposit(int amount)
+        {
+            lock (padlock)
+            {
+                Balance += amount;
+            }
         }
 
         public void Withdraw(int amount)
@@ -73,13 +59,6 @@ namespace ParallerlLoop
             lock (padlock)
             {
                 Balance -= amount;
-            }
-        }
-        public void Deposit(int amount)
-        {
-            lock (padlock)
-            {
-                Balance += amount;
             }
         }
     }
