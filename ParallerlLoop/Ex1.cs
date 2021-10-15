@@ -18,11 +18,11 @@ namespace ParallerlLoop
                 var bankAcount = new BankAccount(100);
                 cDict.TryAdd(i, bankAcount);
                 TotalIncrease++;
-            }  // Create 10000 bank accounts
+            }  
 
             Random rnd = new Random();
             var po = new ParallelOptions();
-            po.MaxDegreeOfParallelism = 4;
+            //po.MaxDegreeOfParallelism = 4;
 
             Parallel.ForEach(cDict, po, x =>
             {
