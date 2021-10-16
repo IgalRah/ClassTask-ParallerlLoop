@@ -10,30 +10,31 @@ namespace ParallerlLoop
         public static ConcurrentDictionary<int, BankAccount> cDict = new ConcurrentDictionary<int, BankAccount>();
         public static void Main(string[] arg)
         {
-            int TotalIncrease = 0;
-            int TotalBalance = 0;
+            int totalIncrease = 0;
+            int newBalance = 0;
+            int oldBalance = 0;
 
             for (int i = 0; i < 10; i++)
             {
-                var bankAcount = new BankAccount(100);
-                cDict.TryAdd(i, bankAcount);
-                TotalIncrease++;
+                cDict.TryAdd(i, new BankAccount(100));
+                oldBalance += 100;
             }  
 
             Random rnd = new Random();
-            var po = new ParallelOptions();
-            //po.MaxDegreeOfParallelism = 4;
+            //var po = new ParallelOptions(); // Optional
+            //po.MaxDegreeOfParallelism = 4; // Optional
 
-            Parallel.ForEach(cDict, po, x =>
+            Parallel.ForEach(cDict, x =>
             {
-                x.Value.Deposit(25);
-                x.Value.Balance /= rnd.Next(1, 10);
-                TotalBalance += x.Value.Balance;
+                var increase = Convert.ToInt32((x.Value.Balance * 0.25) / rnd.Next(1, 10));
+                x.Value.Deposit(increase);
+
+                newBalance += x.Value.Balance;
 
                 Console.WriteLine($"[{Thread.GetCurrentProcessorId()}] Account: {x.Key}, Balance: {x.Value.Balance}");
             }
             );
-            Console.WriteLine($"Total increase: {TotalIncrease}, total balance of all accounts: {TotalBalance}");
+            Console.WriteLine($"Old balance: {oldBalance}$ || 24-hour period in active stock: {newBalance - oldBalance}$ || New total balance: {newBalance}$");
         }
     }
     class BankAccount
